@@ -17,7 +17,7 @@ function Dashboard() {
 // Function to fetch data based on filters
     const fetchData = async (appliedFilters) => {
         const queryParams = new URLSearchParams(
-            Object.entries(appliedFilters).filter(([_, value]) => value != null)
+            Object.entries(appliedFilters)            .filter(([key, value]) => value != null && !(key === 'type' && value === 'all'))
         ).toString();
 
         try {
