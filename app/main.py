@@ -32,9 +32,14 @@ data = [
         "type": "current",
         "businessMonth": {
             "2023": {
-                "January": 1200,
-                "February": 1300,
-                # ... other months
+                "January": {
+                    "cost": 1200,
+                    "costPlanType": "Actual"
+                },
+                "February": {
+                    "cost": 1300,
+                    "costPlanType": "Forecast"
+                },
             }
         },
         "previousYearTotal": 10000,  # Sum of costs from the previous year
@@ -48,14 +53,19 @@ data = [
         "type": "current",
         "businessMonth": {
             "2023": {
-                "March": 1200,
-                "April": 1300,
-                # ... other months
+                "March": {
+                    "cost": 1200,
+                    "costPlanType": "Actual"
+                },
+                "April": {
+                    "cost": 1300,
+                    "costPlanType": "Forecast"
+                },
             }
         },
         "previousYearTotal": 10000,  # Sum of costs from the previous year
-        "fiscalYear": 2023,
-        "insertionDate": datetime.date(2023, 2, 1),
+        "fiscalYear": 2022,
+        "insertionDate": datetime.date(2023, 1, 1),
         "costType": "Operational",
         "department": "IT"
     }

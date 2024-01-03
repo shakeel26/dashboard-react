@@ -11,6 +11,11 @@ function Dashboard() {
     const [allCostTypes, setAllCostTypes] = useState([]);
     const [allDepartments, setAllDepartments] = useState([]);
     const [filteredData, setFilteredData] = useState([]); // State for the filtered data to be displayed
+    const [monthlyTotals, setMonthlyTotals] = useState({});
+    const [previousYearTotalSum, setPreviousYearTotalSum] = useState(0);
+
+
+    const grandTotalOfTotals = Object.values(monthlyTotals).reduce((acc, current) => acc + current, 0);
 
 
     const [filters, setFilters] = useState({
@@ -18,8 +23,18 @@ function Dashboard() {
         fiscalYear: null,
         costType: null,
         department: null,
-        insertionMonth: null  // Initially no month is selected
+        insertionMonth: null,  // Initially no month is selected
+        currencyUnit: 'Eur'  // Default unit
     });
+
+    const currencyUnits = ['Eur', 'KEur', 'MEur']; // Define available units
+
+    // Function to convert values based on currency unit
+    const convertCurrency = (value, unit) => {
+        const unitFactors = {'Eur': 1, 'KEur': 1000, 'MEur': 1000000};
+        return value / (unitFactors[unit] || 1);
+    };
+
 
 // Function to fetch data based on filters
     const fetchData = async (appliedFilters) => {
@@ -102,6 +117,24 @@ function Dashboard() {
 
     console.log('bus ', businessMonths)
 
+    useEffect(() => {
+        const totals = businessMonths.reduce((acc, month) => {
+            // Summing up the cost for each month
+            acc[month] = data.reduce((sum, project) => {
+                const year = Object.keys(project.businessMonth)[0];
+                return sum + (project.businessMonth[year][month]?.cost || 0);
+            }, 0);
+            return acc;
+        }, {});
+
+        // Calculate the sum for the "Previous Year Total"
+        const totalPreviousYear = data.reduce((sum, project) => sum + (project.previousYearTotal || 0), 0);
+
+        setMonthlyTotals(totals);
+        setPreviousYearTotalSum(totalPreviousYear);
+    }, [data, businessMonths]);
+
+
     return (
         <div>
             {/*<Filters filters={filters} setFilters={setFilters} months={allMonths}/>*/}
@@ -113,6 +146,7 @@ function Dashboard() {
                 fiscalYears={allFiscalYears}
                 costTypes={allCostTypes}
                 departments={allDepartments}
+                currencyUnits={currencyUnits}
             />
 
             <Table>
@@ -120,23 +154,57 @@ function Dashboard() {
                     <TableRow>
                         <TableCell>Project</TableCell>
                         {businessMonths.map(month => (
-                            <TableCell key={month}>{month}</TableCell>
+                            <TableCell key={month}>
+                                {month}
+                                <br/>
+                                <span style={{fontSize: 'smaller'}}>
+                    {/* Check if the data for the month exists and then display the costPlanType */}
+                                    {data.length > 0 && data[0].businessMonth["2023"][month]
+                                        ? data[0].businessMonth["2023"][month].costPlanType
+                                        : ''}
+                </span>
+                            </TableCell>
                         ))}
+                        <TableCell>Grand Total</TableCell>
                         <TableCell>Previous Year Total</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
+
+                    {/* Grand Total Row */}
+                    <TableRow>
+                        <TableCell><strong>Grand Total</strong></TableCell>
+                        {businessMonths.map(month => (
+                            <TableCell
+                                key={month}><strong>{convertCurrency(monthlyTotals[month], filters.currencyUnit)}</strong></TableCell>
+                        ))}
+                        <TableCell><strong>{convertCurrency(grandTotalOfTotals, filters.currencyUnit)}</strong></TableCell> {/* New Grand Total of Totals */}
+                        <TableCell>{convertCurrency(previousYearTotalSum, filters.currencyUnit)}</TableCell>
+                    </TableRow>
+
+                    {/* Existing rows for projects */}
                     {data.map(project => {
                         const year = Object.keys(project.businessMonth)[0];
+                        const rowTotal = businessMonths.reduce((sum, month) => {
+                            return sum + (project.businessMonth[year][month]?.cost || 0);
+                        }, 0);
+
                         return (
                             <TableRow key={project.project}>
                                 <TableCell>{project.project}</TableCell>
-                                {businessMonths.map(month => (
-                                    <TableCell key={month}>
-                                        {project.businessMonth[year][month] || 'N/A'}
-                                    </TableCell>
-                                ))}
-                                <TableCell>{project.previousYearTotal}</TableCell>
+                                {businessMonths.map(month => {
+                                    const monthData = project.businessMonth[year][month];
+                                    const convertedCost = monthData ? convertCurrency(monthData.cost, filters.currencyUnit) : 'N/A';
+
+                                    return (
+                                        <TableCell key={month}>
+                                            {/* Render cost if available, otherwise 'N/A' */}
+                                            {convertedCost}
+                                        </TableCell>
+                                    );
+                                })}
+                                <TableCell>{rowTotal}</TableCell> {/* Displaying the row total */}
+                                <TableCell>{convertCurrency(project.previousYearTotal, filters.currencyUnit)}</TableCell>
                             </TableRow>
                         );
                     })}

@@ -1,7 +1,7 @@
 import React from 'react';
 import {FormControl, InputLabel, Select, MenuItem} from '@mui/material';
 
-function Filters({filters, setFilters, months, types, fiscalYears, costTypes, departments}) {
+function Filters({filters, setFilters, months, types, fiscalYears, costTypes, departments, currencyUnits }) {
     const handleFilterChange = (event) => {
         setFilters(prev => ({...prev, [event.target.name]: event.target.value}));
     };
@@ -41,6 +41,15 @@ function Filters({filters, setFilters, months, types, fiscalYears, costTypes, de
                 >
                     {fiscalYears.map(fy => (
                         <MenuItem key={fy} value={fy}>{fy}</MenuItem>
+                    ))}
+                </Select>
+            </FormControl>
+              {/* Currency Unit Filter */}
+            <FormControl>
+                <InputLabel>Currency Unit</InputLabel>
+                <Select name="currencyUnit" value={filters.currencyUnit || ''} onChange={handleFilterChange}>
+                    {currencyUnits.map(unit => (
+                        <MenuItem key={unit} value={unit}>{unit}</MenuItem>
                     ))}
                 </Select>
             </FormControl>
