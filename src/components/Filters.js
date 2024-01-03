@@ -1,26 +1,25 @@
 import React from 'react';
 import {FormControl, InputLabel, Select, MenuItem} from '@mui/material';
 
-function Filters({filters, setFilters, months}) {
+function Filters({filters, setFilters, months, types, fiscalYears, costTypes, departments}) {
     const handleFilterChange = (event) => {
-        setFilters(prev => ({ ...prev, [event.target.name]: event.target.value }));
+        setFilters(prev => ({...prev, [event.target.name]: event.target.value}));
     };
-    // List of months for the filter
-    // const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
     return (
         <div>
-            {/* Example: Type Filter */}
+            {/* Dynamic Type Filter */}
             <FormControl>
                 <InputLabel>Type</InputLabel>
-                <Select name="type" value={filters.type} onChange={handleFilterChange}>
+                <Select name="type" value={filters.type || ''} onChange={handleFilterChange}>
                     <MenuItem value="all">All</MenuItem>
-                    <MenuItem value="current">Current</MenuItem>
-                    <MenuItem value="future">Future</MenuItem>
+                    {types.map(type => (
+                        <MenuItem key={type} value={type}>{type}</MenuItem>
+                    ))}
                 </Select>
             </FormControl>
-
-              <FormControl>
+            {/*Insertion Month*/}
+            <FormControl>
                 <InputLabel>Insertion Month</InputLabel>
                 <Select
                     name="insertionMonth"
@@ -32,7 +31,19 @@ function Filters({filters, setFilters, months}) {
                     ))}
                 </Select>
             </FormControl>
-            {/* Add other filters similarly */}
+            {/*Fiscal Years*/}
+            <FormControl>
+                <InputLabel>Fiscal Year</InputLabel>
+                <Select
+                    name="fiscalYear"
+                    value={filters.fiscalYear || ""}
+                    onChange={handleFilterChange}
+                >
+                    {fiscalYears.map(fy => (
+                        <MenuItem key={fy} value={fy}>{fy}</MenuItem>
+                    ))}
+                </Select>
+            </FormControl>
         </div>
     );
 }

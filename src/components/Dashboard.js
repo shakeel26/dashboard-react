@@ -6,6 +6,13 @@ import {Table, TableBody, TableCell, TableHead, TableRow} from '@mui/material';
 function Dashboard() {
     const [data, setData] = useState([]);
     const [allMonths, setAllMonths] = useState([]);
+    const [allTypes, setAllTypes] = useState([]);
+    const [allFiscalYears, setAllFiscalYears] = useState([]);
+    const [allCostTypes, setAllCostTypes] = useState([]);
+    const [allDepartments, setAllDepartments] = useState([]);
+    const [filteredData, setFilteredData] = useState([]); // State for the filtered data to be displayed
+
+
     const [filters, setFilters] = useState({
         type: null,
         fiscalYear: null,
@@ -17,7 +24,7 @@ function Dashboard() {
 // Function to fetch data based on filters
     const fetchData = async (appliedFilters) => {
         const queryParams = new URLSearchParams(
-            Object.entries(appliedFilters)            .filter(([key, value]) => value != null && !(key === 'type' && value === 'all'))
+            Object.entries(appliedFilters).filter(([key, value]) => value != null && !(key === 'type' && value === 'all'))
         ).toString();
 
         try {
@@ -32,6 +39,27 @@ function Dashboard() {
         }
     };
 
+    // Function to apply filters
+    const applyFilters = (data) => {
+        return data.filter(project => {
+            const typeMatch = !filters.type || filters.type === 'All' || project.type === filters.type;
+            const fiscalYearMatch = !filters.fiscalYear || filters.fiscalYear === 'All' || project.fiscalYear === filters.fiscalYear;
+            const costTypeMatch = !filters.costType || filters.costType === 'All' || project.costType === filters.costType;
+            const departmentMatch = !filters.department || filters.department === 'All' || project.department === filters.department;
+            const insertionMonthMatch = !filters.insertionMonth || filters.insertionMonth === 'All' ||
+                new Date(project.insertionDate).toLocaleString('default', {month: 'long'}) === filters.insertionMonth;
+
+            return typeMatch && fiscalYearMatch && costTypeMatch && departmentMatch && insertionMonthMatch;
+        });
+    };
+
+    // useEffect hook to apply filters whenever they change
+    useEffect(() => {
+        const filtered = applyFilters(data);
+        setFilteredData(filtered);
+    }, [filters, data]);
+
+
     // Initial fetch without filters to get all data and set allMonths
     useEffect(() => {
         const fetchInitialData = async () => {
@@ -43,30 +71,27 @@ function Dashboard() {
             setData(result.projects);
 
             const uniqueMonths = Array.from(new Set(result.projects.map(project =>
-                new Date(project.insertionDate).toLocaleString('default', { month: 'long' })
+                new Date(project.insertionDate).toLocaleString('default', {month: 'long'})
             ))).sort((a, b) => new Date(`1 ${a} 2000`) - new Date(`1 ${b} 2000`));
 
             setAllMonths(uniqueMonths);
+            setAllTypes(extractUniqueOptions(result.projects, 'type'));
+            setAllFiscalYears(extractUniqueOptions(result.projects, 'fiscalYear'));
+            setAllCostTypes(extractUniqueOptions(result.projects, 'costType'));
+            setAllDepartments(extractUniqueOptions(result.projects, 'department'));
+
         };
         fetchInitialData();
     }, []);
 
+    const extractUniqueOptions = (data, key) => {
+        return [...new Set(data.map(item => item[key]))].sort();
+    };
 
     // Fetch data when filters change
     useEffect(() => {
         fetchData(filters);
     }, [filters]);
-
-
-    // Extract unique insertion months from all data for filter options
-    // useEffect(() => {
-    //     const uniqueMonths = Array.from(new Set(data.map(project =>
-    //         new Date(project.insertionDate).toLocaleString('default', {month: 'long'})
-    //     ))).sort((a, b) => new Date(`1 ${a} 2000`) - new Date(`1 ${b} 2000`));
-    //
-    //     setAllMonths(uniqueMonths);
-    // }, [data]);
-
 
     // Determine business months for table headers
     const businessMonths = Array.from(new Set(data.flatMap(project =>
@@ -79,7 +104,16 @@ function Dashboard() {
 
     return (
         <div>
-            <Filters filters={filters} setFilters={setFilters} months={allMonths}/>
+            {/*<Filters filters={filters} setFilters={setFilters} months={allMonths}/>*/}
+            <Filters
+                filters={filters}
+                setFilters={setFilters}
+                months={allMonths}
+                types={allTypes}
+                fiscalYears={allFiscalYears}
+                costTypes={allCostTypes}
+                departments={allDepartments}
+            />
 
             <Table>
                 <TableHead>
