@@ -13,17 +13,32 @@ function Dashboard() {
     const [filteredData, setFilteredData] = useState([]); // State for the filtered data to be displayed
     const [monthlyTotals, setMonthlyTotals] = useState({});
     const [previousYearTotalSum, setPreviousYearTotalSum] = useState(0);
+    const [monthlyDifferences, setMonthlyDifferences] = useState({});
+    const [monthlyPercentages, setMonthlyPercentages] = useState({});
+
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.toLocaleString('default', {month: 'long'});
+
+    // Fallback to the previous month if no data found for the current month
+    // Assuming allMonths is already populated with the available month names
+    const defaultMonth = allMonths.includes(currentMonth) ? currentMonth : getPreviousMonth(currentMonth);
 
 
     const grandTotalOfTotals = Object.values(monthlyTotals).reduce((acc, current) => acc + current, 0);
 
+    function getPreviousMonth(currentMonth) {
+        const monthIndex = allMonths.indexOf(currentMonth);
+        const previousMonthIndex = monthIndex > 0 ? monthIndex - 1 : 11; // Wrap around to December if currentMonth is January
+        return allMonths[previousMonthIndex];
+    }
 
     const [filters, setFilters] = useState({
         type: null,
-        fiscalYear: null,
+        fiscalYear: currentYear.toString(),
         costType: null,
         department: null,
-        insertionMonth: null,  // Initially no month is selected
+        insertionMonth: defaultMonth,  // Initially no month is selected
         currencyUnit: 'Eur'  // Default unit
     });
 
@@ -126,12 +141,25 @@ function Dashboard() {
             }, 0);
             return acc;
         }, {});
+        const differences = {};
+        const percentages = {};
 
         // Calculate the sum for the "Previous Year Total"
         const totalPreviousYear = data.reduce((sum, project) => sum + (project.previousYearTotal || 0), 0);
 
+        businessMonths.forEach((month, index) => {
+            const prevMonth = index > 0 ? businessMonths[index - 1] : null;
+            const currentTotal = totals[month];
+            const prevTotal = prevMonth ? totals[prevMonth] : 0;
+
+            differences[month] = currentTotal - prevTotal;
+            percentages[month] = prevTotal !== 0 ? ((currentTotal - prevTotal) / prevTotal) * 100 : 0;
+        });
+
         setMonthlyTotals(totals);
         setPreviousYearTotalSum(totalPreviousYear);
+        setMonthlyDifferences(differences);
+        setMonthlyPercentages(percentages);
     }, [data, businessMonths]);
 
 
@@ -167,6 +195,8 @@ function Dashboard() {
                         ))}
                         <TableCell>Grand Total</TableCell>
                         <TableCell>Previous Year Total</TableCell>
+                        <TableCell>Difference</TableCell>
+                        <TableCell>Percentage Change</TableCell>
                     </TableRow>
                 </TableHead>
                 <TableBody>
@@ -179,22 +209,29 @@ function Dashboard() {
                                 key={month}><strong>{convertCurrency(monthlyTotals[month], filters.currencyUnit)}</strong></TableCell>
                         ))}
                         <TableCell><strong>{convertCurrency(grandTotalOfTotals, filters.currencyUnit)}</strong></TableCell> {/* New Grand Total of Totals */}
-                        <TableCell>{convertCurrency(previousYearTotalSum, filters.currencyUnit)}</TableCell>
+                        <TableCell><strong>{convertCurrency(previousYearTotalSum, filters.currencyUnit)}</strong></TableCell>
+                        <TableCell>N/A</TableCell>
+                        <TableCell>N/A</TableCell>
+
                     </TableRow>
 
                     {/* Existing rows for projects */}
                     {data.map(project => {
+
                         const year = Object.keys(project.businessMonth)[0];
                         const rowTotal = businessMonths.reduce((sum, month) => {
                             return sum + (project.businessMonth[year][month]?.cost || 0);
                         }, 0);
+                        const previousYearTotal = project.previousYearTotal || 0;
+                        const difference = rowTotal - previousYearTotal;
+                        const percentageChange = rowTotal/previousYearTotal -1
 
                         return (
                             <TableRow key={project.project}>
                                 <TableCell>{project.project}</TableCell>
                                 {businessMonths.map(month => {
                                     const monthData = project.businessMonth[year][month];
-                                    const convertedCost = monthData ? convertCurrency(monthData.cost, filters.currencyUnit) : 'N/A';
+                                    const convertedCost = monthData ? convertCurrency(monthData.cost, filters.currencyUnit) : 0;
 
                                     return (
                                         <TableCell key={month}>
@@ -203,8 +240,11 @@ function Dashboard() {
                                         </TableCell>
                                     );
                                 })}
-                                <TableCell>{rowTotal}</TableCell> {/* Displaying the row total */}
+                                <TableCell>{convertCurrency(rowTotal, filters.currencyUnit)}</TableCell> {/* Displaying the row total */}
                                 <TableCell>{convertCurrency(project.previousYearTotal, filters.currencyUnit)}</TableCell>
+                <TableCell>{difference}</TableCell> {/* Difference */}
+                                                <TableCell>{percentageChange.toFixed(2)}%</TableCell> {/* Percentage Change */}
+
                             </TableRow>
                         );
                     })}
